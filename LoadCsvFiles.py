@@ -26,7 +26,7 @@ def get_files_from_path(path):
 
 
 def get_rows_from_file(file):
-    with open(file, 'r') as fp:
+    with open(file, 'r', encoding='utf-8-sig') as fp:
         reader = csv.reader(fp, delimiter=',', quotechar='"')
         headers = next(reader, None)
         data_read = [row for row in reader]
@@ -117,13 +117,13 @@ def main(argv):
         sys.exit(4)
 
     # Get files from path
-    print("Finding files for " + path)
+    print("Finding files in " + path)
     files = get_files_from_path(path)
-    print(files)
 
     # For each file get rows
     statement_dictionary = {}
-    for file in files:
+    for file in [file for file in files if file.endswith('.csv')]:
+        print(file)
         headers, data = get_rows_from_file(file)
         print(headers)
         print(data)
