@@ -18,6 +18,9 @@ def usage():
          -w --password              Required. Password
     Example: LoadCsvFiles -p D:\Projects\Indiana\Dashboards-Plugin-EWS\Database\Data\Dashboard\DashboardTypes -s . \
 -d IN_EdFi_Dashboard -u edfiPService -w edfiPService
+    Example: LoadCsvFiles \
+-p D:\Projects\Indiana\Ed-Fi-Dashboard\Etl\src\EdFi.Runtime\Reading\Queries\2.0\DashboardTypes \
+-s . -d IN_EdFi_Dashboard -u edfiPService -w edfiPService
     """)
 
 
@@ -27,8 +30,8 @@ def get_files_from_path(path):
     return full_list
 
 
-def get_rows_from_file(file):
-    with open(file, 'r', encoding='utf-8-sig') as fp:
+def get_rows_from_file(file, file_encoding):
+    with open(file, 'r', encoding=file_encoding) as fp:
         reader = csv.reader(fp, delimiter=',', quotechar='"')
         headers = next(reader, None)
         data_read = [row for row in reader]
@@ -50,10 +53,9 @@ def run_data(table, headers, data, cursor):
         if 'identity' in row.type_name:
             has_identity = True
             break
-    pk_columns = []
-    for row in cursor.primaryKeys(table_info.table_name, table_info.table_cat, table_info.table_schem).fetchall():
-        pk_columns.append(row.column_name)
 
+    pk_columns = [row.column_name for row in
+                  cursor.primaryKeys(table_info.table_name, table_info.table_cat, table_info.table_schem).fetchall()]
     try_later = []
     for row in data:
         header_data_dict = dict(zip(headers, row))
@@ -71,13 +73,28 @@ def run_data(table, headers, data, cursor):
             else:
                 print('Nothing to update: ' + update)
         else:
-            insert = get_insert_statement(headers, row, table, has_identity)
+            if has_identity:
+                cursor.execute('SET IDENTITY_INSERT metric.' + table + ' ON')
+            insert = get_insert_statement(headers, row, table)
             print(insert)
-            cursor.execute(insert)
+            try:
+                cursor.execute(insert)
+            except pyodbc.IntegrityError:
+                try_later.append(insert)
+            finally:
+                if has_identity:
+                    cursor.execute('SET IDENTITY_INSERT metric.' + table + ' OFF')
 
     for statement in try_later:
         print('Trying again: ' + statement)
-        cursor.execute(statement)
+        try:
+            cursor.execute(statement)
+            try_later.remove(statement)
+        except pyodbc.IntegrityError as e:
+            print("Statement Fail:")
+            print(e)
+
+    return try_later
 
 
 def get_select_statement(table, pk_columns, header_data_dict):
@@ -85,18 +102,14 @@ def get_select_statement(table, pk_columns, header_data_dict):
     return select
 
 
-def get_insert_statement(headers, row, table, has_identity):
+def get_insert_statement(headers, row, table):
     statement = ''
-    if has_identity:
-        statement += 'SET IDENTITY_INSERT metric.' + table + ' ON; '
     statement += 'INSERT INTO metric.' + table + ' (' + ", ".join(headers) + ') VALUES ('
     first = True
     for item in row:
         statement += ('' if first else ', ') + get_value(item)
         first = False
     statement += ')'
-    if has_identity:
-        statement += 'SET IDENTITY_INSERT metric.' + table + ' OFF; '
     return statement
 
 
@@ -189,7 +202,10 @@ def main(argv):
     data_dictionary = {}
     for file in [file for file in files if file.endswith('.csv')]:
         print(file)
-        headers, data = get_rows_from_file(file)
+        try:
+            headers, data = get_rows_from_file(file, 'utf-8-sig')
+        except UnicodeDecodeError:
+            headers, data = get_rows_from_file(file, 'cp1252')
         print(headers)
         print(data)
 
@@ -209,20 +225,26 @@ def main(argv):
     # Run statements for Metric and Metric Variant first
     table_name = 'Metric'
     headers, data = data_dictionary[table_name]
-    run_data(table_name, headers, data, cursor)
+    failed_statements = run_data(table_name, headers, data, cursor)
     del data_dictionary[table_name]
 
     table_name = 'MetricVariant'
     headers, data = data_dictionary[table_name]
-    run_data(table_name, headers, data, cursor)
+    failed_statements += run_data(table_name, headers, data, cursor)
     del data_dictionary[table_name]
 
     # Run the rest of the data
     for key in data_dictionary:
         headers, data = data_dictionary[key]
-        run_data(key, headers, data, cursor)
+        failed_statements += run_data(key, headers, data, cursor)
 
     connection.commit()
+    connection.close()
+
+    if failed_statements:
+        print("At lease one statement failed.")
+        for statement in failed_statements:
+            print(statement)
 
 
 if __name__ == '__main__':
