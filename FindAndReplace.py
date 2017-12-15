@@ -1,5 +1,8 @@
 import re
 
+start_at = 11221809
+increment_by = 11199652 - 11221809
+
 
 def find_lines_in_file(file, file_encoding, pattern, process_match):
     # Open file for reading
@@ -20,7 +23,8 @@ def show_match(match_object):
         print(full_match)
         match_to_process = match_object.group(2)
         val = int(match_to_process)
-        print(val + 226)
+        if val >= start_at:
+            print(val + increment_by)
 
 
 def replace_lines_in_file(file, file_encoding, pattern, process_match):
@@ -54,16 +58,33 @@ def update_match(line, match_object):
         first_match_group = match_object.group(1)
         match_to_process = match_object.group(2)
         val = int(match_to_process)
-        return line.replace(full_match, first_match_group + str(val + 226))
+        if val >= start_at:
+            return line.replace(full_match, first_match_group + str(val + increment_by))
+
+    return line
 
 
 def main():
     print('Running main.')
 
-    file_name = 'D:\Projects\Indiana\Dashboards-Plugin-EWS\Database\EdFi.Dashboards.Db.Dashboard.Plugin.EWS\Post' \
-                '-Deployment\Metadata\metric\MetadataListColumn.sql '
-    pattern = r'(VALUES \()([\d]{4})'
-    show = True
+    file_name = \
+        'D:\Projects\Ed-Fi-Alliance\BulkLoad2_0\PopulatedTemplateBulkLoad\Data\StudentAssessment-Benchmarks-7th Grade ELA 2nd Six Weeks.xml'
+    # MetadataList MetadataListId
+    # pattern = r'(VALUES \()([\d]{2})'
+
+    # MetadataListColumnGroup MetadataListId
+    # pattern = r'(VALUES \([\d]{3}, )([\d]{2})'
+    # MetadataListColumnGroup MetadataListColumnGroupId
+    # pattern = r'(VALUES \()([\d]{3})'
+
+    # MetadataListColumn MetadataListColumnGroupId
+    # pattern = r'(VALUES \([\d]{4}, )([\d]{3})'
+    # MetadataListColumn MetadataListColumnId
+    # pattern = r'(VALUES \()([\d]{4})'
+
+    # Student Assessment Item Identification Code
+    pattern = r'([\s]+' + re.escape('<') + 'IdentificationCode' + re.escape('>') + ')([\d]{8})'
+    show = False
 
     try:
         if show:

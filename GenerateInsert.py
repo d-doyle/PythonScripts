@@ -82,7 +82,9 @@ def write_inserts_to_file(columns, has_identity, path, results, table):
             # Get an insert statement and write it to the file
             insert_statement = get_insert_statement(columns, row, table)
             print(insert_statement)
+            print('GO')
             fp.write(insert_statement)
+            fp.write('GO\n')
         # If has identity end identity insert
         if has_identity:
             # Write turn off identity insert statement
@@ -93,7 +95,7 @@ def write_inserts_to_file(columns, has_identity, path, results, table):
 
 def get_insert_statement(columns, row, table):
     # Build insert statement with values and return it
-    statement = 'INSERT INTO ' + table + ' (' + ", ".join(columns) + ') VALUES ('
+    statement = 'INSERT ' + table + ' ([' + "], [".join(columns) + ']) VALUES ('
     first = True
     for item in row:
         statement += ('' if first else ', ') + get_value(item)
@@ -103,16 +105,20 @@ def get_insert_statement(columns, row, table):
 
 
 def get_value(item):
+    # If item is bool, return 1 or 0
+    if isinstance(item, bool):
+        return str(1) if item else str(0)
+
     # If item is int or float, return it
     if isinstance(item, int) or isinstance(item, float):
         return str(item)
 
     # If item is none or empty return null
-    if item is None or item == '':
-        return 'null'
+    if item is None:
+        return 'NULL'
 
     # Return item in single quotes
-    return '\'' + item.replace('\'', '\'\'') + '\''
+    return 'N\'' + item.replace('\'', '\'\'') + '\''
 
 
 def main(argv):
@@ -170,7 +176,8 @@ def main(argv):
     connection.close()
 
     # Write inserts to file
-    write_inserts_to_file(columns, has_identity, path, results, table)
+    table_for_insert = '[' + schema + '].[' + table_name + ']'
+    write_inserts_to_file(columns, has_identity, path, results, table_for_insert)
 
 
 if __name__ == '__main__':

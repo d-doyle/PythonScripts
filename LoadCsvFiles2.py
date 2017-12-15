@@ -16,6 +16,7 @@ def usage():
          -d --database              Required. Database name
          -u --user                  Required. User name
          -w --password              Required. Password
+         -t --test                  Only display the statements that would be run. Do not run them.
     Example: LoadCsvFiles -p D:\Projects\Indiana\Dashboards-Plugin-EWS\Database\Data\Dashboard\DashboardTypes -s . \
 -d IN_EdFi_Dashboard -u edfiPService -w edfiPService
     Example: LoadCsvFiles \
@@ -30,6 +31,7 @@ def get_args(opts):
     database = None
     user = None
     password = None
+    test = False
     for opt, arg in opts:
         if opt in ('-h', '--help'):
             usage()
@@ -44,7 +46,9 @@ def get_args(opts):
             user = arg
         if opt in ('-w', '--password'):
             password = arg
-    return database, password, path, server, user
+        if opt in ('-t', '--test'):
+            test = True
+    return database, password, path, server, user, test
 
 
 def get_files_from_path(path):
@@ -82,9 +86,11 @@ def get_table_name(file):
     return table
 
 
-def run_data(table, headers, data, cursor):
+def run_data(table, headers, data, cursor, should_execute):
     # Get schema information
     table_info = cursor.tables(table=table).fetchone()
+    if table_info is None:
+        raise ValueError(f'No table for {table} was found.')
     schema_name = table_info.table_schem
 
     # Determine if the table has an identity column
@@ -100,13 +106,16 @@ def run_data(table, headers, data, cursor):
 
     try_later = []
     for row in data:
+        # Prevent fails on empty rows
+        if not row:
+            continue
         # Turn headers and row data into key value paris and store in dictionary
         header_data_dict = dict(zip(headers, row))
         # Get a select statement to determine if row exists in table
         select = get_select_statement(schema_name, table, pk_columns, header_data_dict)
-        print(select)
+        # print(select)
         # Run select statement
-        result = cursor.execute(select).fetchone()
+        result = execute_cursor(cursor, select, True).fetchone()
         # If row exists
         if result:
             # Get should update indicator and update statement
@@ -117,7 +126,7 @@ def run_data(table, headers, data, cursor):
                 print(update)
                 # Try the update
                 try:
-                    cursor.execute(update)
+                    execute_cursor(cursor, update, should_execute)
                 except pyodbc.IntegrityError:
                     # If it fails, supporting (foreign key) rows may not have been loaded yet,
                     # save it to try again later
@@ -129,13 +138,13 @@ def run_data(table, headers, data, cursor):
         else:
             # If table has identity turn on identity insert
             if has_identity:
-                cursor.execute('SET IDENTITY_INSERT ' + schema_name + '.' + table + ' ON')
+                execute_cursor(cursor, 'SET IDENTITY_INSERT ' + schema_name + '.' + table + ' ON', should_execute)
             # Get the insert statement
             insert = get_insert_statement(headers, row, schema_name, table)
             print(insert)
             # Try the insert
             try:
-                cursor.execute(insert)
+                execute_cursor(cursor, insert, should_execute)
             except pyodbc.IntegrityError:
                 # If it fails, supporting (foreign key) rows may not have been loaded yet,
                 # save it to try again later
@@ -143,14 +152,14 @@ def run_data(table, headers, data, cursor):
             finally:
                 # If table has identity turn off identity insert
                 if has_identity:
-                    cursor.execute('SET IDENTITY_INSERT ' + schema_name + '.' + table + ' OFF')
+                    execute_cursor(cursor, 'SET IDENTITY_INSERT ' + schema_name + '.' + table + ' OFF', should_execute)
 
     # For each try later statement
     for statement in try_later:
         print('Trying again: ' + statement)
         # Try it again
         try:
-            cursor.execute(statement)
+            execute_cursor(cursor, statement, should_execute)
             # If it succeeds then remove it from the list
             try_later.remove(statement)
         except pyodbc.IntegrityError as e:
@@ -160,6 +169,13 @@ def run_data(table, headers, data, cursor):
 
     # Return any statements that are still failing
     return try_later
+
+
+def execute_cursor(cursor, statement, should_execute):
+    if should_execute:
+        return cursor.execute(statement)
+
+    return None
 
 
 def get_select_statement(schema_name, table, pk_columns, header_data_dict):
@@ -230,7 +246,8 @@ def main(argv):
 
     # Get command line options
     try:
-        opts, args = getopt.getopt(argv, 'hp:s:d:u:w:', ['help', 'path=', 'server=', 'database=', 'user=', 'password='])
+        opts, args = getopt.getopt(
+            argv, 'hp:s:d:u:w:t', ['help', 'path=', 'server=', 'database=', 'user=', 'password=', 'test'])
     except getopt.GetoptError:
         usage()
         sys.exit(1)
@@ -241,7 +258,10 @@ def main(argv):
         sys.exit(2)
 
     # Get arguments
-    database, password, path, server, user = get_args(opts)
+    database, password, path, server, user, test = get_args(opts)
+    should_execute = not test
+    if test:
+        print('Performing test run only. Statements will not be executed against the database.')
 
     # If arguments are missing, show usage and exit
     if path is None or server is None or database is None or user is None or password is None:
@@ -283,18 +303,18 @@ def main(argv):
     # Run statements for Metric and Metric Variant first
     table_name = 'Metric'
     headers, data = data_dictionary[table_name]
-    failed_statements = run_data(table_name, headers, data, cursor)
+    failed_statements = run_data(table_name, headers, data, cursor, should_execute)
     del data_dictionary[table_name]
 
     table_name = 'MetricVariant'
     headers, data = data_dictionary[table_name]
-    failed_statements.append(run_data(table_name, headers, data, cursor))
+    failed_statements += run_data(table_name, headers, data, cursor, should_execute)
     del data_dictionary[table_name]
 
     # Run the rest of the data
     for key in data_dictionary:
         headers, data = data_dictionary[key]
-        failed_statements.append(run_data(key, headers, data, cursor))
+        failed_statements += run_data(key, headers, data, cursor, should_execute)
 
     # Commit the changes and close the connection
     connection.commit()
