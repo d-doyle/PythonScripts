@@ -6,7 +6,7 @@ import pyodbc
 
 
 def usage():
-    print("""\
+    print('''\
     LoadCsvFiles 2.0: Handles performing updates instead of inserts where data is already present, identity inserts, \
     and UTF-8-BOM encoded files
     Usage: LoadCsvFiles [OPTIONS]
@@ -22,7 +22,7 @@ def usage():
     Example: LoadCsvFiles \
 -p D:\Projects\Indiana\Ed-Fi-Dashboard\Etl\src\EdFi.Runtime\Reading\Queries\2.0\DashboardTypes \
 -s . -d IN_EdFi_Dashboard -u edfiPService -w edfiPService
-    """)
+    ''')
 
 
 def get_args(opts):
@@ -164,7 +164,7 @@ def run_data(table, headers, data, cursor, should_execute):
             try_later.remove(statement)
         except pyodbc.IntegrityError as e:
             # If it fails, print a fail statement
-            print("Statement Fail:")
+            print('Statement Fail:')
             print(e)
 
     # Return any statements that are still failing
@@ -186,7 +186,7 @@ def get_select_statement(schema_name, table, pk_columns, header_data_dict):
 
 def get_insert_statement(headers, row, schema_name, table):
     # Build insert statement
-    statement = 'INSERT INTO ' + schema_name + '.' + table + ' (' + ", ".join(headers) + ') VALUES ('
+    statement = 'INSERT INTO ' + schema_name + '.' + table + ' (' + ', '.join(headers) + ') VALUES ('
     first = True
     for item in row:
         statement += ('' if first else ', ') + get_value(item)
@@ -242,7 +242,7 @@ def floatTryParse(value):
 
 
 def main(argv):
-    print("Running main.")
+    print('Running main.')
 
     # Get command line options
     try:
@@ -269,7 +269,7 @@ def main(argv):
         sys.exit(4)
 
     # Get files from path
-    print("Finding files in " + path)
+    print('Finding files in ' + path)
     files = get_files_from_path(path)
 
     # For each file, if it is a csv file, get rows
@@ -322,7 +322,7 @@ def main(argv):
 
     # If there are still any failed statements then show them
     if failed_statements:
-        print("At lease one statement failed.")
+        print('At lease one statement failed.')
         for statement in failed_statements:
             print(statement)
 

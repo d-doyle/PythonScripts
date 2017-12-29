@@ -74,7 +74,7 @@ def write_inserts_to_file(columns, has_identity, path, results, table):
         # If has identity use identity insert
         if has_identity:
             # Write turn on identity insert statement
-            statement = 'SET IDENTITY_INSERT ' + table + ' ON;\n\n'
+            statement = f'SET IDENTITY_INSERT {table} ON;\n\n'
             print(statement)
             fp.write(statement)
         # For each row
@@ -88,7 +88,7 @@ def write_inserts_to_file(columns, has_identity, path, results, table):
         # If has identity end identity insert
         if has_identity:
             # Write turn off identity insert statement
-            statement = '\nSET IDENTITY_INSERT ' + table + ' OFF;\n'
+            statement = f'\nSET IDENTITY_INSERT {table} OFF;\n'
             print(statement)
             fp.write(statement)
 
