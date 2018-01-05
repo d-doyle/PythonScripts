@@ -73,7 +73,7 @@ def get_metric_sql():
 
 
 def write_inserts_to_file(metadata_column_group_id_list, metric_result, path):
-    # Set next column id
+    # Set next column ied. Path for creating Insert SQL filesd
     metadata_list_column_id = 22340
     # Open the file
     with open(os.path.join(path, '201712071619 - InsertNewMetadataColumnsStateAssessments.sql'), 'a', encoding='utf-8') as fp:

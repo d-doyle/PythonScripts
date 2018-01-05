@@ -95,12 +95,11 @@ def write_inserts_to_file(columns, has_identity, path, results, table):
 
 def get_insert_statement(columns, row, table):
     # Build insert statement with values and return it
-    statement = 'INSERT ' + table + ' ([' + "], [".join(columns) + ']) VALUES ('
-    first = True
+    statement = 'INSERT ' + table + ' ([' + "], [".join(columns) + ']) VALUES '
+    values = ''
     for item in row:
-        statement += ('' if first else ', ') + get_value(item)
-        first = False
-    statement += ')\n'
+        values += ', ' + get_value(item)
+    statement += '(' + values.lstrip(', ') + ')\n'
     return statement
 
 
