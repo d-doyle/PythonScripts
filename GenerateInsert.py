@@ -6,7 +6,7 @@ import sys
 
 def usage():
     print("""\
-    GenerateInsert: Generates insert statements for the specified file
+    GenerateInsert: Generates insert statements for the specified table
     Usage: GenerateInsert [OPTIONS]
          -h --help                  Display this usage message
          -p --path                  Required. Path to CSV files
