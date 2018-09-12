@@ -1,7 +1,7 @@
 import re
 
-start_at = 11221809
-increment_by = 11199652 - 11221809
+start_at = 2683
+increment_by = 10000 - 2683
 
 
 def find_lines_in_file(file, file_encoding, pattern, process_match):
@@ -68,22 +68,22 @@ def main():
     print('Running main.')
 
     file_name = \
-        'D:\Projects\Ed-Fi-Alliance\BulkLoad2_0\PopulatedTemplateBulkLoad\Data\StudentAssessment-Benchmarks-7th Grade ELA 2nd Six Weeks.xml'
+        'D:\Projects\Minneapolis-EdFi\Dashboards-Plugin-EWS\Database\EdFi.Dashboards.Db.Dashboard.Plugin.EWS\Post-Deployment\Metadata\metric\MetadataListColumn.sql'
     # MetadataList MetadataListId
     # pattern = r'(VALUES \()([\d]{2})'
 
     # MetadataListColumnGroup MetadataListId
-    # pattern = r'(VALUES \([\d]{3}, )([\d]{2})'
+    # pattern = r'(VALUES \([\d]{4}, )([\d]{2})'
     # MetadataListColumnGroup MetadataListColumnGroupId
     # pattern = r'(VALUES \()([\d]{3})'
 
     # MetadataListColumn MetadataListColumnGroupId
     # pattern = r'(VALUES \([\d]{4}, )([\d]{3})'
     # MetadataListColumn MetadataListColumnId
-    # pattern = r'(VALUES \()([\d]{4})'
+    pattern = r'(VALUES \()([\d]{4})'
 
     # Student Assessment Item Identification Code
-    pattern = r'([\s]+' + re.escape('<') + 'IdentificationCode' + re.escape('>') + ')([\d]{8})'
+    # pattern = r'([\s]+' + re.escape('<') + 'IdentificationCode' + re.escape('>') + ')([\d]{8})'
     show = False
 
     try:

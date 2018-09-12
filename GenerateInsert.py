@@ -65,9 +65,10 @@ def get_has_identity(cursor, table):
     return has_identity[0]
 
 
-def write_inserts_to_file(columns, has_identity, path, results, table):
+def write_inserts_to_file(columns, has_identity, path, results, schema, table_name):
+    table = '[' + schema + '].[' + table_name + ']'
     # Open a file for the table insert scripts
-    with open(os.path.join(path, 'InsertDataFor' + table + '.sql'), 'a', encoding='utf-8') as fp:
+    with open(os.path.join(path, 'InsertDataFor' + table_name + '.sql'), 'a', encoding='utf-8') as fp:
         # Clear the file
         fp.seek(0)
         fp.truncate()
@@ -175,8 +176,7 @@ def main(argv):
     connection.close()
 
     # Write inserts to file
-    table_for_insert = '[' + schema + '].[' + table_name + ']'
-    write_inserts_to_file(columns, has_identity, path, results, table_for_insert)
+    write_inserts_to_file(columns, has_identity, path, results, schema, table_name)
 
 
 if __name__ == '__main__':

@@ -9,7 +9,7 @@ import subprocess
 def usage():
     print('''\
     RunTests: Runs NUnit tests
-    Usage: LoadCsvFiles [OPTIONS]
+    Usage: RunTests [OPTIONS]
          -h --help                  Display this usage message
          -p --paths                 Required. Paths to compiled (DLL) Test files
          -s --search                Required. Search criteria for finding tests
