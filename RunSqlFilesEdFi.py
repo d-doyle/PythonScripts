@@ -25,7 +25,7 @@ def usage():
          -h --help                  Display this usage message
          -p --path                  Required. Path to SQL files
          -s --server                Required. Database server
-         -d --database              Required. Database
+         -d --database prefix       Required. Database prefix
          -u --user                  Required. User name
          -w --password              Required. Password
     Example: RunSqlFiles -p D:\Projects\DelawareDOE\Dashboards-Plugin-EWS\Database -s . \
@@ -36,7 +36,7 @@ def usage():
 def get_args(opts):
     path = None
     server = None
-    database = None
+    database_prefix = None
     user = None
     password = None
     for opt, arg in opts:
@@ -48,12 +48,12 @@ def get_args(opts):
         if opt in ('-s', '--server'):
             server = arg
         if opt in ('-d', '--database'):
-            database = arg
+            database_prefix = arg
         if opt in ('-u', '--user'):
             user = arg
         if opt in ('-w', '--password'):
             password = arg
-    return database, password, path, server, user
+    return database_prefix, password, path, server, user
 
 
 def get_and_run_files_from_path(database, password, path, server, user):
@@ -69,8 +69,8 @@ def get_and_run_files_from_path(database, password, path, server, user):
         print(file)
 
     # Build and show the connection string
-    # connection_string = 'DRIVER={SQL Server};SERVER=' + server + ';DATABASE=' + database + ';UID=' + user + ';PWD=' + password
-    connection_string = 'DRIVER={SQL Server};SERVER=' + server + ';DATABASE=' + database + ';Trusted_Connection=yes'
+    connection_string = 'DRIVER={SQL Server};SERVER=' + server + ';DATABASE=' + database + ';UID=' + \
+                        user + ';PWD=' + password
     print(connection_string)
 
     # Show file count and ask user if continue
@@ -125,7 +125,7 @@ def run_files(file_names, cursor):
     if try_later:
         for script in try_later:
             print('Retrying script:')
-            err = run_script(cursor, script)
+            _, err = run_script(cursor, script)
             if err:
                 print(ScreenColors.FAIL + 'Retry Failed.' + ScreenColors.END_C)
                 print(ScreenColors.FAIL + err.args[1] + ScreenColors.END_C)
@@ -177,8 +177,6 @@ def run_script(cursor, script):
         if 'already' in err.args[1]:
             return '', None
         return script, err
-    except:
-        return script, sys.exc_info()[0]
 
     return '', None
 
@@ -199,22 +197,24 @@ def main(argv):
         sys.exit(2)
 
     # Get arguments
-    database, password, path, server, user = get_args(opts)
+    database_prefix, password, path, server, user = get_args(opts)
 
     # If there are any missing arguments, show usage and exit
-    if path is None or server is None or database is None or user is None or password is None:
+    if path is None or server is None or database_prefix is None or user is None or password is None:
         usage()
         sys.exit(4)
-
-    # Run files from main directory
-    get_and_run_files_from_path(database, password, path, server, user)
 
     # Get sub directories from the path
     sub_directories = [os.path.join(path, x) for x in os.listdir(path) if os.path.isdir(os.path.join(path, x))]
 
     # For each sub-directory
     for directory in sub_directories:
-        get_and_run_files_from_path(database, password, directory, server, user)
+        if 'Application' in directory:
+            get_and_run_files_from_path(database_prefix + 'Application', password, directory, server, user)
+        elif 'DashboardDW' in directory:
+            get_and_run_files_from_path(database_prefix + 'DashboardDW', password, directory, server, user)
+        elif 'Dashboard' in directory:
+            get_and_run_files_from_path(database_prefix + 'Dashboard', password, directory, server, user)
 
 
 if __name__ == '__main__':
