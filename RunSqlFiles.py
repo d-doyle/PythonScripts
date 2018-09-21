@@ -116,16 +116,14 @@ def run_files(file_names, cursor):
             file_lines = get_lines_from_file(file_name, 'utf-8-sig')
         except UnicodeDecodeError:
             file_lines = get_lines_from_file(file_name, 'utf-16')
-        failed_statements = run_lines(cursor, file_lines)
-        # If there are any failed statements then add them to try-later list
-        if failed_statements:
-            try_later.append(failed_statements)
+        try_later += run_lines(cursor, file_lines)
 
     # If there are any statements that failed, try them again
     if try_later:
         for script in try_later:
             print('Retrying script:')
-            err = run_script(cursor, script)
+            print(script[:500])
+            _, err = run_script(cursor, script)
             if err:
                 print(ScreenColors.FAIL + 'Retry Failed.' + ScreenColors.END_C)
                 print(ScreenColors.FAIL + err.args[1] + ScreenColors.END_C)
@@ -151,16 +149,23 @@ def run_lines(cursor, file_lines):
             # Then we have a complete script, run it
             failed_script, e = run_script(cursor, script)
             # If it fails then show it and append it to try later
-            if failed_script:
-                print(ScreenColors.FAIL + 'Statement(s) failed. Saving for retry.' + ScreenColors.END_C)
-                print(ScreenColors.FAIL + e.args[1] + ScreenColors.END_C)
+            if e:
+                display_error(e)
                 try_later.append(failed_script)
             script = ''
         else:
             script += line
 
-    run_script(cursor, script)
+    failed_script, e = run_script(cursor, script)
+    if e:
+        display_error(e)
+        try_later.append(failed_script)
     return try_later
+
+
+def display_error(e):
+    print(ScreenColors.FAIL + 'Statement(s) failed. Saving for retry.' + ScreenColors.END_C)
+    print(ScreenColors.FAIL + e.args[1] + ScreenColors.END_C)
 
 
 def run_script(cursor, script):
