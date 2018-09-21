@@ -7,6 +7,7 @@ increment_by = 10000 - 2683
 def find_lines_in_file(file, file_encoding, pattern, process_match):
     # Open file for reading
     with open(file, 'r', encoding=file_encoding) as fp:
+        print('File found ' + file)
         # Get file contents into list
         file_contents = fp.readlines()
         # For each line in file
@@ -15,16 +16,6 @@ def find_lines_in_file(file, file_encoding, pattern, process_match):
             match_object = re.search(pattern, line, flags=0)
             # Call function to process match
             process_match(match_object)
-
-
-def show_match(match_object):
-    if match_object:
-        full_match = match_object.group(0)
-        print(full_match)
-        match_to_process = match_object.group(2)
-        val = int(match_to_process)
-        if val >= start_at:
-            print(val + increment_by)
 
 
 def replace_lines_in_file(file, file_encoding, pattern, process_match):
@@ -52,6 +43,16 @@ def replace_lines_in_file(file, file_encoding, pattern, process_match):
         fp.writelines(file_contents)
 
 
+def show_match(match_object):
+    if match_object:
+        full_match = match_object.group(0)
+        print(full_match)
+        match_to_process = match_object.group(2)
+        val = int(match_to_process)
+        if val >= start_at:
+            print(val + increment_by)
+
+
 def update_match(line, match_object):
     if match_object:
         full_match = match_object.group(0)
@@ -68,12 +69,12 @@ def main():
     print('Running main.')
 
     file_name = \
-        'D:\Projects\Minneapolis-EdFi\Dashboards-Plugin-EWS\Database\EdFi.Dashboards.Db.Dashboard.Plugin.EWS\Post-Deployment\Metadata\metric\MetadataListColumn.sql'
+        'D:\Projects\Klein\Dashboards-Plugin-EWS\Database\EdFi.Dashboards.Db.Dashboard.Plugin.EWS\Post-Deployment\Metadata\metric\MetadataListColumn.sql'
     # MetadataList MetadataListId
     # pattern = r'(VALUES \()([\d]{2})'
 
     # MetadataListColumnGroup MetadataListId
-    # pattern = r'(VALUES \([\d]{4}, )([\d]{2})'
+    # pattern = r'(VALUES \([\d]{3}, )([\d]{2})'
     # MetadataListColumnGroup MetadataListColumnGroupId
     # pattern = r'(VALUES \()([\d]{3})'
 
